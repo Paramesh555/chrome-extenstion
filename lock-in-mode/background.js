@@ -11,6 +11,7 @@ const allowedTabs = new Set();
 
 // Use onBeforeNavigate - fires once per navigation, before the page starts loading
 chrome.webNavigation.onBeforeNavigate.addListener((details) => {
+    console.log("onBeforeNavigate", details);
   // Only handle main frame navigations (not iframes)
   if (details.frameId !== 0) return;
   
@@ -38,10 +39,59 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "allowAndRedirect") {
     const tabId = sender.tab.id;
+    console.log("allowAndRedirect", tabId, message);
     allowedTabs.add(tabId);
     chrome.tabs.update(tabId, { url: message.url });
+
+    // Set a reminder alarm if time was specified
+    if (message.reminderMinutes) {
+      const alarmName = `reminder_${tabId}_${Date.now()}`;
+      
+      // Store alarm info for the time's up page
+      chrome.storage.local.set({
+        [alarmName]: {
+          tabId: tabId,
+          siteName: message.siteName,
+          minutes: message.reminderMinutes,
+          targetUrl: message.url
+        }
+      });
+
+      // Create the alarm
+      chrome.alarms.create(alarmName, {
+        delayInMinutes: message.reminderMinutes
+      });
+    }
   } else if (message.action === "goBack") {
     chrome.tabs.update(sender.tab.id, { url: "chrome://newtab" });
+  }
+});
+
+// Handle alarm - redirect to time's up page
+chrome.alarms.onAlarm.addListener((alarm) => {
+  console.log("onAlarm", alarm);
+  if (alarm.name.startsWith("reminder_")) {
+    // Get stored info for this alarm
+    chrome.storage.local.get(alarm.name, (data) => {
+      const info = data[alarm.name] || {};
+      const tabId = info.tabId;
+      const siteName = info.siteName || "the site";
+      const minutes = info.minutes || "a few";
+      const targetUrl = info.targetUrl || "";
+
+      // Build the time's up page URL
+      const timeupPage = chrome.runtime.getURL(
+        `timeup.html?site=${encodeURIComponent(siteName)}&minutes=${encodeURIComponent(minutes)}&target=${encodeURIComponent(targetUrl)}`
+      );
+
+      // Redirect the tab to the time's up page
+      if (tabId) {
+        chrome.tabs.update(tabId, { url: timeupPage });
+      }
+
+      // Clean up stored data
+      chrome.storage.local.remove(alarm.name);
+    });
   }
 });
   

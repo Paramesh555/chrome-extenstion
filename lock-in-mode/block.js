@@ -30,9 +30,65 @@ if (blockedSiteEl && targetUrl) {
   }
 }
   
-  document.getElementById("continue").onclick = () => {
-  // Tell background to allow this tab and redirect
-  chrome.runtime.sendMessage({ action: "allowAndRedirect", url: targetUrl });
+// Modal elements
+const modal = document.getElementById("time-modal");
+const timeOptions = document.querySelectorAll(".time-option");
+const confirmBtn = document.getElementById("modal-confirm");
+const cancelBtn = document.getElementById("modal-cancel");
+
+let selectedMinutes = null;
+
+// Show modal when clicking Continue
+document.getElementById("continue").onclick = () => {
+  modal.classList.add("active");
+};
+
+// Handle time option selection
+timeOptions.forEach(option => {
+  option.onclick = () => {
+    // Remove selected class from all options
+    timeOptions.forEach(opt => opt.classList.remove("selected"));
+    // Add selected class to clicked option
+    option.classList.add("selected");
+    // Store selected minutes
+    selectedMinutes = parseInt(option.dataset.minutes);
+    // Enable confirm button
+    confirmBtn.disabled = false;
+  };
+});
+
+// Cancel button - close modal
+cancelBtn.onclick = () => {
+  modal.classList.remove("active");
+  selectedMinutes = null;
+  timeOptions.forEach(opt => opt.classList.remove("selected"));
+  confirmBtn.disabled = true;
+};
+
+// Click outside modal to close
+modal.onclick = (e) => {
+  if (e.target === modal) {
+    cancelBtn.onclick();
+  }
+};
+
+// Confirm button - set timer and redirect
+confirmBtn.onclick = () => {
+  if (selectedMinutes && targetUrl) {
+    // Get site name for the notification
+    let siteName = targetUrl;
+    try {
+      siteName = new URL(targetUrl).hostname.replace('www.', '');
+    } catch {}
+
+    // Tell background to allow, set timer, and redirect
+    chrome.runtime.sendMessage({
+      action: "allowAndRedirect",
+      url: targetUrl,
+      reminderMinutes: selectedMinutes,
+      siteName: siteName
+    });
+  }
 };
 
 document.getElementById("back").onclick = () => {

@@ -171,6 +171,150 @@
       color: #718096;
       font-weight: 500;
     }
+
+    /* Time Picker Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(4px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal {
+      background: white;
+      padding: 32px 40px;
+      border-radius: 20px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+      transform: scale(0.9) translateY(20px);
+      transition: all 0.3s ease;
+    }
+
+    .modal-overlay.active .modal {
+      transform: scale(1) translateY(0);
+    }
+
+    .modal-icon {
+      font-size: 40px;
+      margin-bottom: 16px;
+    }
+
+    .modal h2 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 22px;
+      color: #2d3748;
+      margin-bottom: 8px;
+    }
+
+    .modal p {
+      font-size: 14px;
+      color: #718096;
+      margin-bottom: 24px;
+    }
+
+    .time-options {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .time-option {
+      padding: 14px 8px;
+      border-radius: 12px;
+      border: 2px solid #e2e8f0;
+      background: #f7fafc;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: #4a5568;
+    }
+
+    .time-option:hover {
+      border-color: #cbd5e0;
+      background: #edf2f7;
+    }
+
+    .time-option.selected {
+      border-color: #ed8936;
+      background: #fffaf0;
+      color: #c05621;
+    }
+
+    .time-option span {
+      display: block;
+      font-size: 11px;
+      font-weight: 400;
+      color: #a0aec0;
+      margin-top: 2px;
+    }
+
+    .time-option.selected span {
+      color: #dd6b20;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .modal-btn {
+      padding: 12px 24px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .modal-btn.cancel {
+      background: #edf2f7;
+      color: #718096;
+    }
+
+    .modal-btn.cancel:hover {
+      background: #e2e8f0;
+    }
+
+    .modal-btn.confirm {
+      background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+      color: white;
+      box-shadow: 0 4px 14px rgba(237, 137, 54, 0.35);
+    }
+
+    .modal-btn.confirm:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(237, 137, 54, 0.45);
+    }
+
+    .modal-btn.confirm:disabled {
+      background: #cbd5e0;
+      box-shadow: none;
+      cursor: not-allowed;
+      transform: none;
+    }
   </style>
 </head>
 
@@ -192,6 +336,47 @@
 
       <div class="site-blocked">
         <p>Blocked: <span id="blocked-site"></span></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Time Picker Modal -->
+  <div class="modal-overlay" id="time-modal">
+    <div class="modal">
+      <div class="modal-icon">⏱️</div>
+      <h2>Set a Time Limit</h2>
+      <p>We'll remind you when your break time is up</p>
+      
+      <div class="time-options">
+        <button class="time-option" data-minutes="1">
+          1 min
+          <span>Quick peek</span>
+        </button>
+        <button class="time-option" data-minutes="10">
+          10 min
+          <span>Short break</span>
+        </button>
+        <button class="time-option" data-minutes="15">
+          15 min
+          <span>Coffee break</span>
+        </button>
+        <button class="time-option" data-minutes="30">
+          30 min
+          <span>Lunch break</span>
+        </button>
+        <button class="time-option" data-minutes="45">
+          45 min
+          <span>Extended</span>
+        </button>
+        <button class="time-option" data-minutes="60">
+          1 hour
+          <span>Long break</span>
+        </button>
+      </div>
+
+      <div class="modal-buttons">
+        <button class="modal-btn cancel" id="modal-cancel">Cancel</button>
+        <button class="modal-btn confirm" id="modal-confirm" disabled>Start Timer</button>
       </div>
     </div>
   </div>
