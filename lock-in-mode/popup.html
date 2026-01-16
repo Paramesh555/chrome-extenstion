@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 280px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #fef9f3 0%, #fdf2e9 100%);
+      padding: 20px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .header img {
+      width: 36px;
+      height: 36px;
+    }
+
+    .header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #2d3748;
+    }
+
+    .toggle-container {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      margin-bottom: 16px;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .toggle-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #4a5568;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 50px;
+      height: 28px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #cbd5e0;
+      transition: 0.3s;
+      border-radius: 28px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    input:checked + .slider {
+      background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(22px);
+    }
+
+    .status {
+      text-align: center;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+
+    .status.active {
+      background: #c6f6d5;
+      color: #276749;
+    }
+
+    .status.inactive {
+      background: #fed7d7;
+      color: #c53030;
+    }
+
+    .status-icon {
+      margin-right: 6px;
+    }
+
+    .footer {
+      margin-top: 16px;
+      text-align: center;
+      font-size: 11px;
+      color: #a0aec0;
+    }
+
+    .blocked-count {
+      background: white;
+      border-radius: 12px;
+      padding: 14px 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .blocked-count span {
+      font-size: 13px;
+      color: #718096;
+    }
+
+    .blocked-count strong {
+      font-size: 18px;
+      color: #2d3748;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="lock-in-icon.png" alt="Lock-In Mode" />
+    <h1>Lock-In Mode</h1>
+  </div>
+
+  <div class="toggle-container">
+    <div class="toggle-row">
+      <span class="toggle-label">Block Distractions</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="toggle" checked />
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="blocked-count">
+    <span>Sites you allowed today</span>
+    <strong id="block-count">0</strong>
+  </div>
+
+  <div class="status active" id="status">
+    <span class="status-icon">🛡️</span>
+    <span id="status-text">Protection Active</span>
+  </div>
+
+  <div class="footer">
+    Stay focused. Build something great.
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
+

@@ -88,6 +88,11 @@ confirmBtn.onclick = () => {
       reminderMinutes: selectedMinutes,
       siteName: siteName
     });
+
+      // Increment blocked count for today
+  const countData = chrome.storage.local.get("allowedToday");
+  const newCount = (countData.allowedToday || 0) + 1;
+  chrome.storage.local.set({ allowedToday: newCount });
   }
 };
 

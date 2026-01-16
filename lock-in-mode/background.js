@@ -10,13 +10,16 @@ const DISTRACTING_SITES = [
 const allowedTabs = new Set();
 
 // Use onBeforeNavigate - fires once per navigation, before the page starts loading
-chrome.webNavigation.onBeforeNavigate.addListener((details) => {
-    console.log("onBeforeNavigate", details);
+chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
   // Only handle main frame navigations (not iframes)
   if (details.frameId !== 0) return;
   
   const url = details.url;
   if (!url) return;
+
+  // Check if extension is enabled
+  const data = await chrome.storage.local.get("enabled");
+  if (data.enabled === false) return; // Skip if disabled
 
   // Skip if this tab was allowed by the user
   if (allowedTabs.has(details.tabId)) {
@@ -26,6 +29,7 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
 
   const isDistracting = DISTRACTING_SITES.some(site => url.includes(site));
   if (!isDistracting) return;
+
 
   // Redirect to our own extension page
   const blockPage = chrome.runtime.getURL(
