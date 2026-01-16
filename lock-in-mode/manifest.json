@@ -1,0 +1,14 @@
+{
+    "manifest_version": 3,
+    "name": "Lock-In Mode",
+    "version": "1.0",
+    "description": "Interrupts distracting sites with motivational quotes",
+  
+    "permissions": ["tabs", "storage", "webNavigation"],
+    "host_permissions": ["<all_urls>"],
+  
+    "background": {
+      "service_worker": "background.js"
+    }
+  }
+  

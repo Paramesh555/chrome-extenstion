@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Stay Focused</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #fef9f3 0%, #fdf2e9 50%, #fce7d6 100%);
+      font-family: 'DM Sans', sans-serif;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Decorative background elements */
+    body::before {
+      content: '';
+      position: absolute;
+      top: -150px;
+      right: -150px;
+      width: 400px;
+      height: 400px;
+      background: linear-gradient(135deg, #ffd6a5 0%, #ffb347 100%);
+      border-radius: 50%;
+      opacity: 0.3;
+      filter: blur(60px);
+    }
+
+    body::after {
+      content: '';
+      position: absolute;
+      bottom: -100px;
+      left: -100px;
+      width: 300px;
+      height: 300px;
+      background: linear-gradient(135deg, #a8e6cf 0%, #88d8b0 100%);
+      border-radius: 50%;
+      opacity: 0.25;
+      filter: blur(50px);
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      animation: fadeInUp 0.6s ease-out;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(20px);
+      padding: 48px 56px;
+      border-radius: 24px;
+      max-width: 520px;
+      text-align: center;
+      box-shadow: 
+        0 4px 6px rgba(0, 0, 0, 0.02),
+        0 12px 24px rgba(0, 0, 0, 0.04),
+        0 24px 48px rgba(0, 0, 0, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+    }
+
+    .icon {
+      font-size: 48px;
+      margin-bottom: 24px;
+      display: block;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .quote {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 26px;
+      font-weight: 600;
+      color: #2d3748;
+      line-height: 1.4;
+      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+    }
+
+    .subtext {
+      font-size: 15px;
+      color: #718096;
+      margin-bottom: 32px;
+      font-weight: 400;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 14px 28px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .back {
+      background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+      color: white;
+      box-shadow: 0 4px 14px rgba(72, 187, 120, 0.35);
+    }
+
+    .back:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(72, 187, 120, 0.45);
+    }
+
+    .continue {
+      background: #f7fafc;
+      color: #718096;
+      border: 1px solid #e2e8f0;
+    }
+
+    .continue:hover {
+      background: #edf2f7;
+      color: #4a5568;
+    }
+
+    .site-blocked {
+      margin-top: 28px;
+      padding-top: 24px;
+      border-top: 1px solid #e2e8f0;
+    }
+
+    .site-blocked p {
+      font-size: 13px;
+      color: #a0aec0;
+    }
+
+    .site-blocked span {
+      color: #718096;
+      font-weight: 500;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="card">
+      <span class="icon">🎯</span>
+      <h1 class="quote" id="quote"></h1>
+      <p class="subtext">Take a breath. Is this really where you want to spend your time?</p>
+
+      <div class="buttons">
+        <button class="continue" id="continue">
+          Continue Anyway
+        </button>
+        <button class="back" id="back">
+            <span>←</span> Return to Focus
+          </button>
+      </div>
+
+      <div class="site-blocked">
+        <p>Blocked: <span id="blocked-site"></span></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="block.js"></script>
+</body>
+</html>
