@@ -3,7 +3,8 @@ const DISTRACTING_SITES = [
   "youtube.com",
   "twitter.com",
   "facebook.com",
-  "x.com"
+  "x.com",
+  "tiktok.com"
 ];
 
 // Track tabs that user chose to continue (temporarily allowed)

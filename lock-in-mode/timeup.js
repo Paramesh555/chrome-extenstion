@@ -12,18 +12,5 @@ document.getElementById("back").onclick = () => {
   chrome.runtime.sendMessage({ action: "goBack" });
 };
 
-// 5 More Minutes - allow and redirect with new timer
-document.getElementById("continue").onclick = () => {
-  if (targetUrl) {
-    chrome.runtime.sendMessage({
-      action: "allowAndRedirect",
-      url: targetUrl,
-      reminderMinutes: 5,
-      siteName: siteName
-    });
-  } else {
-    // If no target URL, just go back
-    chrome.runtime.sendMessage({ action: "goBack" });
-  }
-};
+
 
