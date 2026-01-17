@@ -5,7 +5,14 @@
   "description": "Interrupts distracting sites with motivational quotes",
 
   "permissions": ["tabs", "storage", "webNavigation", "alarms"],
-  "host_permissions": ["<all_urls>"],
+  "host_permissions": [
+    "*://*.instagram.com/*",
+    "*://*.youtube.com/*",
+    "*://*.twitter.com/*",
+    "*://*.facebook.com/*",
+    "*://*.x.com/*",
+    "*://*.tiktok.com/*"
+  ],
 
   "background": {
     "service_worker": "background.js"
