@@ -10,6 +10,32 @@ const DISTRACTING_SITES = [
 // Track tabs that user chose to continue (temporarily allowed)
 const allowedTabs = new Set();
 
+// Safe tab update - handles closed tabs gracefully
+async function safeTabUpdate(tabId, updateProps) {
+  try {
+    await chrome.tabs.update(tabId, updateProps);
+  } catch (error) {
+    // Tab was closed or doesn't exist - ignore
+    console.log("Tab no longer exists:", tabId);
+  }
+}
+
+// Clean up all reminder alarms and their storage data
+async function cleanupAllReminders() {
+  // Get all alarms
+  const alarms = await chrome.alarms.getAll();
+  
+  // Filter reminder alarms and clear them
+  const reminderAlarms = alarms.filter(a => a.name.startsWith("reminder_"));
+  
+  for (const alarm of reminderAlarms) {
+    await chrome.alarms.clear(alarm.name);
+    await chrome.storage.local.remove(alarm.name);
+  }
+  
+  console.log(`Cleaned up ${reminderAlarms.length} reminders`);
+}
+
 // Common function to check and block a tab if it's on a distracting site
 function checkAndBlockTab(tabId, url) {
   if (!url) return;
@@ -28,7 +54,7 @@ function checkAndBlockTab(tabId, url) {
     "block.html?target=" + encodeURIComponent(url)
   );
 
-  chrome.tabs.update(tabId, { url: blockPage });
+  safeTabUpdate(tabId, { url: blockPage });
 }
 
 // Use onBeforeNavigate - fires once per navigation, before the page starts loading
@@ -43,17 +69,22 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
   checkAndBlockTab(details.tabId, details.url);
 });
 
-// When extension is turned ON, check all existing tabs
-chrome.storage.onChanged.addListener((changes) => {
-  if (changes.enabled && changes.enabled.newValue === true) {
-    // Extension was just turned ON - check all open tabs
-    chrome.tabs.query({}, (tabs) => {
-      tabs.forEach(tab => {
-        if (tab.url) {
-          checkAndBlockTab(tab.id, tab.url);
-        }
+// When extension is turned ON/OFF, handle accordingly
+chrome.storage.onChanged.addListener(async (changes) => {
+  if (changes.enabled) {
+    if (changes.enabled.newValue === true) {
+      // Extension was just turned ON - check all open tabs
+      chrome.tabs.query({}, (tabs) => {
+        tabs.forEach(tab => {
+          if (tab.url) {
+            checkAndBlockTab(tab.id, tab.url);
+          }
+        });
       });
-    });
+    } else if (changes.enabled.newValue === false) {
+      // Extension was just turned OFF - clean up all reminders
+      await cleanupAllReminders();
+    }
   }
 });
 
@@ -64,7 +95,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const tabId = sender.tab.id;
     console.log("allowAndRedirect", tabId, message);
     allowedTabs.add(tabId);
-    chrome.tabs.update(tabId, { url: message.url });
+    safeTabUpdate(tabId, { url: message.url });
 
     // Set a reminder alarm if time was specified
     if (message.reminderMinutes) {
@@ -86,7 +117,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
     }
   } else if (message.action === "goBack") {
-    chrome.tabs.update(sender.tab.id, { url: "chrome://newtab" });
+    safeTabUpdate(sender.tab.id, { url: "chrome://newtab" });
   }
 });
 
@@ -103,26 +134,25 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     }
 
     // Get stored info for this alarm
-    chrome.storage.local.get(alarm.name, (data) => {
-      const info = data[alarm.name] || {};
-      const tabId = info.tabId;
-      const siteName = info.siteName || "the site";
-      const minutes = info.minutes || "a few";
-      const targetUrl = info.targetUrl || "";
+    const data = await chrome.storage.local.get(alarm.name);
+    const info = data[alarm.name] || {};
+    const tabId = info.tabId;
+    const siteName = info.siteName || "the site";
+    const minutes = info.minutes || "a few";
+    const targetUrl = info.targetUrl || "";
 
-      // Build the time's up page URL
-      const timeupPage = chrome.runtime.getURL(
-        `timeup.html?site=${encodeURIComponent(siteName)}&minutes=${encodeURIComponent(minutes)}&target=${encodeURIComponent(targetUrl)}`
-      );
+    // Build the time's up page URL
+    const timeupPage = chrome.runtime.getURL(
+      `timeup.html?site=${encodeURIComponent(siteName)}&minutes=${encodeURIComponent(minutes)}&target=${encodeURIComponent(targetUrl)}`
+    );
 
-      // Redirect the tab to the time's up page
-      if (tabId) {
-        chrome.tabs.update(tabId, { url: timeupPage });
-      }
+    // Redirect the tab to the time's up page (handles closed tabs gracefully)
+    if (tabId) {
+      await safeTabUpdate(tabId, { url: timeupPage });
+    }
 
-      // Clean up stored data
-      chrome.storage.local.remove(alarm.name);
-    });
+    // Clean up stored data
+    chrome.storage.local.remove(alarm.name);
   }
 });
   
