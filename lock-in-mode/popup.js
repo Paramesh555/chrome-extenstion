@@ -1,7 +1,7 @@
 const toggle = document.getElementById("toggle");
 const status = document.getElementById("status");
 const statusText = document.getElementById("status-text");
-const blockCount = document.getElementById("block-count");
+const allowedCount = document.getElementById("allowed-count");
 
 // Load current state
 chrome.storage.local.get(["enabled", "allowedToday"], (data) => {
@@ -10,7 +10,7 @@ chrome.storage.local.get(["enabled", "allowedToday"], (data) => {
   updateUI(isEnabled);
   
   // Show blocked count
-  blockCount.textContent = data.allowedToday || 0;
+  allowedCount.textContent = data.allowedToday || 0;
 });
 
 // Handle toggle change
@@ -23,12 +23,12 @@ toggle.addEventListener("change", () => {
 function updateUI(isEnabled) {
   if (isEnabled) {
     status.className = "status active";
-    statusText.textContent = "Protection Active";
-    status.innerHTML = '<span class="status-icon">🛡️</span><span>Protection Active</span>';
+    statusText.textContent = "Active";
+    status.innerHTML = '<span class="status-icon">🛡️</span><span>Active</span>';
   } else {
     status.className = "status inactive";
-    statusText.textContent = "Protection Disabled";
-    status.innerHTML = '<span class="status-icon">⚠️</span><span>Protection Disabled</span>';
+    statusText.textContent = "Disabled";
+    status.innerHTML = '<span class="status-icon">⚠️</span><span>Disabled</span>';
   }
 }
 

@@ -10,35 +10,53 @@ const DISTRACTING_SITES = [
 // Track tabs that user chose to continue (temporarily allowed)
 const allowedTabs = new Set();
 
-// Use onBeforeNavigate - fires once per navigation, before the page starts loading
-chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
-  // Only handle main frame navigations (not iframes)
-  if (details.frameId !== 0) return;
-  
-  const url = details.url;
+// Common function to check and block a tab if it's on a distracting site
+function checkAndBlockTab(tabId, url) {
   if (!url) return;
 
-  // Check if extension is enabled
-  const data = await chrome.storage.local.get("enabled");
-  if (data.enabled === false) return; // Skip if disabled
-
   // Skip if this tab was allowed by the user
-  if (allowedTabs.has(details.tabId)) {
-    allowedTabs.delete(details.tabId); // One-time pass
+  if (allowedTabs.has(tabId)) {
+    allowedTabs.delete(tabId); // One-time pass
     return;
   }
 
   const isDistracting = DISTRACTING_SITES.some(site => url.includes(site));
   if (!isDistracting) return;
 
-
   // Redirect to our own extension page
   const blockPage = chrome.runtime.getURL(
     "block.html?target=" + encodeURIComponent(url)
   );
 
-  chrome.tabs.update(details.tabId, { url: blockPage });
+  chrome.tabs.update(tabId, { url: blockPage });
+}
+
+// Use onBeforeNavigate - fires once per navigation, before the page starts loading
+chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
+  // Only handle main frame navigations (not iframes)
+  if (details.frameId !== 0) return;
+
+  // Check if extension is enabled
+  const data = await chrome.storage.local.get("enabled");
+  if (data.enabled === false) return; // Skip if disabled
+
+  checkAndBlockTab(details.tabId, details.url);
 });
+
+// When extension is turned ON, check all existing tabs
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.enabled && changes.enabled.newValue === true) {
+    // Extension was just turned ON - check all open tabs
+    chrome.tabs.query({}, (tabs) => {
+      tabs.forEach(tab => {
+        if (tab.url) {
+          checkAndBlockTab(tab.id, tab.url);
+        }
+      });
+    });
+  }
+});
+
 
 // Listen for messages from the block page
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -73,9 +91,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 // Handle alarm - redirect to time's up page
-chrome.alarms.onAlarm.addListener((alarm) => {
+chrome.alarms.onAlarm.addListener(async (alarm) => {
   console.log("onAlarm", alarm);
   if (alarm.name.startsWith("reminder_")) {
+    // Check if extension is enabled
+    const enabledData = await chrome.storage.local.get("enabled");
+    if (enabledData.enabled === false) {
+      // Extension is disabled - just clean up, don't interrupt
+      chrome.storage.local.remove(alarm.name);
+      return;
+    }
+
     // Get stored info for this alarm
     chrome.storage.local.get(alarm.name, (data) => {
       const info = data[alarm.name] || {};

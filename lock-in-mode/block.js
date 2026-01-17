@@ -19,6 +19,22 @@ quoteEl.textContent = QUOTES[Math.floor(Math.random() * QUOTES.length)];
 const params = new URLSearchParams(window.location.search);
 const targetUrl = params.get("target");
 
+// Check if extension is disabled - if so, redirect to target
+chrome.storage.local.get("enabled", (data) => {
+  if (data.enabled === false && targetUrl) {
+    window.location.href = targetUrl;
+  }
+});
+
+// Listen for extension being disabled while on this page
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.enabled && changes.enabled.newValue === false && targetUrl) {
+    window.location.href = targetUrl;
+  }
+});
+
+
+
 // Display the blocked site name
 const blockedSiteEl = document.getElementById("blocked-site");
 if (blockedSiteEl && targetUrl) {
@@ -81,6 +97,12 @@ confirmBtn.onclick = () => {
       siteName = new URL(targetUrl).hostname.replace('www.', '');
     } catch {}
 
+    // Increment allowed count for today
+    chrome.storage.local.get("allowedToday", (data) => {
+      const newCount = (data.allowedToday || 0) + 1;
+      chrome.storage.local.set({ allowedToday: newCount });
+    });
+
     // Tell background to allow, set timer, and redirect
     chrome.runtime.sendMessage({
       action: "allowAndRedirect",
@@ -88,11 +110,6 @@ confirmBtn.onclick = () => {
       reminderMinutes: selectedMinutes,
       siteName: siteName
     });
-
-      // Increment blocked count for today
-  const countData = chrome.storage.local.get("allowedToday");
-  const newCount = (countData.allowedToday || 0) + 1;
-  chrome.storage.local.set({ allowedToday: newCount });
   }
 };
 
