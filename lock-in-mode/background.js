@@ -11,17 +11,44 @@ const DISTRACTING_SITES = [
 // Track tabs that user chose to continue (temporarily allowed)
 const allowedTabs = new Set();
 
-// Safe tab update - handles closed tabs gracefully
-async function safeTabUpdate(tabId, updateProps) {
+// Create alarm for background tabs (not active/focused)
+async function createBackgroundTabAlarm(tabId, originalUrl = 'i dont know', minutes = 10) {
+  const alarmName = `bg_reminder_${tabId}_${Date.now()}`;
+  
+  let siteName = originalUrl;
   try {
+    siteName = new URL(originalUrl).hostname.replace("www.", "");
+  } catch {}
 
-    //if the tab is not active mean not in the focus then dont update the tab 
-    //usecase: for listnening to songs or podcasts in background tabs
+  // Store alarm info
+  await chrome.storage.local.set({
+    [alarmName]: {
+      tabId: tabId,
+      siteName: siteName,
+      minutes: minutes,
+      targetUrl: originalUrl
+    }
+  });
+
+  // Create the alarm
+  chrome.alarms.create(alarmName, {
+    delayInMinutes: minutes
+  });
+
+  console.log(`Created background tab alarm: ${alarmName} for ${minutes} minutes`);
+}
+
+// Safe tab update - handles closed tabs gracefully
+// Pass originalUrl if you want to create an alarm for background tabs
+async function safeTabUpdate(tabId, updateProps, originalUrl = null) {
+  try {
+    // If the tab is not active (not in focus), don't update immediately
+    // Usecase: for listening to songs or podcasts in background tabs
     const tab = await chrome.tabs.get(tabId);
     if (!tab.active) {
       console.log("Tab is not active, skipping update:", tabId);
-      //but create a alarm so that this tab wont be open for long
-      createAlaram(1); //10 minutes
+      // Create an alarm so this tab won't stay unblocked forever
+      await createBackgroundTabAlarm(tabId, originalUrl, 1); // 10 minutes
       return;
     }
     await chrome.tabs.update(tabId, updateProps);
@@ -36,8 +63,10 @@ async function cleanupAllReminders() {
   // Get all alarms
   const alarms = await chrome.alarms.getAll();
   
-  // Filter reminder alarms and clear them
-  const reminderAlarms = alarms.filter(a => a.name.startsWith("reminder_"));
+  // Filter reminder alarms (both regular and background tab reminders)
+  const reminderAlarms = alarms.filter(a => 
+    a.name.startsWith("reminder_") || a.name.startsWith("bg_reminder_")
+  );
   
   for (const alarm of reminderAlarms) {
     await chrome.alarms.clear(alarm.name);
@@ -74,7 +103,8 @@ async function checkAndBlockTab(tabId, url) {
     "block.html?target=" + encodeURIComponent(url)
   );
 
-  safeTabUpdate(tabId, { url: blockPage });
+  // Pass original URL for background tab alarm creation
+  safeTabUpdate(tabId, { url: blockPage }, url);
 }
 
 async function setAllowedTabsLocalStorage(tabId) {
@@ -162,7 +192,9 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 // Handle alarm - redirect to time's up page
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   console.log("onAlarm", alarm);
-  if (alarm.name.startsWith("reminder_")) {
+  
+  // Handle both regular reminders and background tab reminders
+  if (alarm.name.startsWith("reminder_") || alarm.name.startsWith("bg_reminder_")) {
     // Check if extension is enabled
     const enabledData = await chrome.storage.local.get("enabled");
     if (enabledData.enabled === false) {
