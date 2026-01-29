@@ -7,12 +7,23 @@ const DISTRACTING_SITES = [
   "tiktok.com"
 ];
 
+//todo: remove the allowedTabs from localstorage
 // Track tabs that user chose to continue (temporarily allowed)
 const allowedTabs = new Set();
 
 // Safe tab update - handles closed tabs gracefully
 async function safeTabUpdate(tabId, updateProps) {
   try {
+
+    //if the tab is not active mean not in the focus then dont update the tab 
+    //usecase: for listnening to songs or podcasts in background tabs
+    const tab = await chrome.tabs.get(tabId);
+    if (!tab.active) {
+      console.log("Tab is not active, skipping update:", tabId);
+      //but create a alarm so that this tab wont be open for long
+      createAlaram(1); //10 minutes
+      return;
+    }
     await chrome.tabs.update(tabId, updateProps);
   } catch (error) {
     // Tab was closed or doesn't exist - ignore
@@ -37,14 +48,23 @@ async function cleanupAllReminders() {
 }
 
 // Common function to check and block a tab if it's on a distracting site
-function checkAndBlockTab(tabId, url) {
+async function checkAndBlockTab(tabId, url) {
   if (!url) return;
 
   // Skip if this tab was allowed by the user
-  if (allowedTabs.has(tabId)) {
-    allowedTabs.delete(tabId); // One-time pass
+  // console.log("allowedTabs", allowedTabs);
+  // if (allowedTabs.has(tabId)) {
+  //   allowedTabs.delete(tabId); // One-time pass
+  //   return;
+  // }
+
+  //get allowed tabs from local storage
+  const allowedTabs = await chrome.storage.local.get("allowed_tabs");
+  const allowedTabsArray = allowedTabs.allowed_tabs || [];
+  if (allowedTabsArray.includes(tabId)) {
     return;
   }
+
 
   const isDistracting = DISTRACTING_SITES.some(site => url.includes(site));
   if (!isDistracting) return;
@@ -57,6 +77,21 @@ function checkAndBlockTab(tabId, url) {
   safeTabUpdate(tabId, { url: blockPage });
 }
 
+async function setAllowedTabsLocalStorage(tabId) {
+  const data = await chrome.storage.local.get("allowed_tabs");
+
+  const allowedTabsArray = data.allowed_tabs || [];
+
+  if (!allowedTabsArray.includes(tabId)) {
+    allowedTabsArray.push(tabId);
+  }
+
+  await chrome.storage.local.set({
+    allowed_tabs: allowedTabsArray
+  });
+}
+
+
 // Use onBeforeNavigate - fires once per navigation, before the page starts loading
 chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
   // Only handle main frame navigations (not iframes)
@@ -66,43 +101,46 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
   const data = await chrome.storage.local.get("enabled");
   if (data.enabled === false) return; // Skip if disabled
 
-  checkAndBlockTab(details.tabId, details.url);
+  await checkAndBlockTab(details.tabId, details.url);
 });
 
 // When extension is turned ON/OFF, handle accordingly
 chrome.storage.onChanged.addListener(async (changes) => {
-  if (changes.enabled) {
-    if (changes.enabled.newValue === true) {
-      // Extension was just turned ON - check all open tabs
-      chrome.tabs.query({}, (tabs) => {
-        tabs.forEach(tab => {
-          if (tab.url) {
-            checkAndBlockTab(tab.id, tab.url);
-          }
-        });
-      });
-    } else if (changes.enabled.newValue === false) {
-      // Extension was just turned OFF - clean up all reminders
-      await cleanupAllReminders();
+  if (!changes.enabled) return;
+
+  if (changes.enabled.newValue === true) {
+    // Extension turned ON
+    const tabs = await chrome.tabs.query({});
+
+    for (const tab of tabs) {
+      if (tab.id && tab.url) {
+        await checkAndBlockTab(tab.id, tab.url);
+      }
     }
+  }
+
+  if (changes.enabled.newValue === false) {
+    // Extension turned OFF
+    await cleanupAllReminders();
   }
 });
 
 
+
 // Listen for messages from the block page
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   if (message.action === "allowAndRedirect") {
     const tabId = sender.tab.id;
     console.log("allowAndRedirect", tabId, message);
-    allowedTabs.add(tabId);
+
+    await setAllowedTabsLocalStorage(tabId);
+
     safeTabUpdate(tabId, { url: message.url });
 
-    // Set a reminder alarm if time was specified
     if (message.reminderMinutes) {
       const alarmName = `reminder_${tabId}_${Date.now()}`;
-      
-      // Store alarm info for the time's up page
-      chrome.storage.local.set({
+
+      await chrome.storage.local.set({
         [alarmName]: {
           tabId: tabId,
           siteName: message.siteName,
@@ -111,7 +149,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
       });
 
-      // Create the alarm
       chrome.alarms.create(alarmName, {
         delayInMinutes: message.reminderMinutes
       });
@@ -120,6 +157,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     safeTabUpdate(sender.tab.id, { url: "chrome://newtab" });
   }
 });
+
 
 // Handle alarm - redirect to time's up page
 chrome.alarms.onAlarm.addListener(async (alarm) => {
@@ -145,6 +183,12 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     const timeupPage = chrome.runtime.getURL(
       `timeup.html?site=${encodeURIComponent(siteName)}&minutes=${encodeURIComponent(minutes)}&target=${encodeURIComponent(targetUrl)}`
     );
+
+    //remove the tab from allowed tabs in local storage
+    const allowedTabsData = await chrome.storage.local.get("allowed_tabs");
+    let allowedTabsArray = allowedTabsData.allowed_tabs || [];
+    allowedTabsArray = allowedTabsArray.filter(id => id !== tabId);
+    await chrome.storage.local.set({ allowed_tabs: allowedTabsArray });
 
     // Redirect the tab to the time's up page (handles closed tabs gracefully)
     if (tabId) {

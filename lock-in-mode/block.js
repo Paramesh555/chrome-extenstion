@@ -52,7 +52,7 @@ const timeOptions = document.querySelectorAll(".time-option");
 const confirmBtn = document.getElementById("modal-confirm");
 const cancelBtn = document.getElementById("modal-cancel");
 
-let selectedMinutes = null;
+let selectedMinutes = null; //default when a background tab is opend to avoid long distraction
 
 // Show modal when clicking Continue
 document.getElementById("continue").onclick = () => {
@@ -90,28 +90,32 @@ modal.onclick = (e) => {
 
 // Confirm button - set timer and redirect
 confirmBtn.onclick = () => {
-  if (selectedMinutes && targetUrl) {
-    // Get site name for the notification
-    let siteName = targetUrl;
-    try {
-      siteName = new URL(targetUrl).hostname.replace('www.', '');
-    } catch {}
-
-    // Increment allowed count for today
-    chrome.storage.local.get("allowedToday", (data) => {
-      const newCount = (data.allowedToday || 0) + 1;
-      chrome.storage.local.set({ allowedToday: newCount });
-    });
-
-    // Tell background to allow, set timer, and redirect
-    chrome.runtime.sendMessage({
-      action: "allowAndRedirect",
-      url: targetUrl,
-      reminderMinutes: selectedMinutes,
-      siteName: siteName
-    });
-  }
+  createAlaram(selectedMinutes);
 };
+
+function createAlaram(selectedMinutes) {
+
+  // Get site name for the notification
+  let siteName = targetUrl;
+  try {
+    siteName = new URL(targetUrl).hostname.replace("www.", "");
+  } catch {}
+
+  // Increment allowed count for today
+  chrome.storage.local.get("allowedToday", (data) => {
+    const newCount = (data.allowedToday || 0) + 1;
+    chrome.storage.local.set({ allowedToday: newCount });
+  });
+
+  // Tell background to allow, set timer, and redirect
+  chrome.runtime.sendMessage({
+    action: "allowAndRedirect",
+    url: targetUrl,
+    reminderMinutes: selectedMinutes,
+    siteName: siteName
+  });
+}
+
 
 document.getElementById("back").onclick = () => {
   // Navigate to empty tab
